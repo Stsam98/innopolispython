@@ -123,9 +123,9 @@ def delete_employee(employee_id):
     return jsonify({'message': 'Deleted'}), 200
 
 
-@app.route('/employee', methods=['GET'])
+@app.route('/employees', methods=['GET'])
 @swag_from({
-    'tags': ['Employee'],
+    'tags': ['Employees'],
     'responses': {
         200: {
             'description': 'List of all employees',
@@ -156,9 +156,9 @@ def get_all_employees():
     } for e in employees]), 200
 
 
-@app.route('/employees/name/<string:name>', methods=['GET'])
+@app.route('/employee/name/<string:name>', methods=['GET'])
 @swag_from({
-    'tags': ['Employees'],
+    'tags': ['Employee'],
     'description': 'Получить сотрудника по имени',
     'parameters': [
         {
@@ -208,9 +208,9 @@ def get_employee_by_name(name):
     })
 
 
-@app.route('/employees/<int:id>', methods=['GET'])
+@app.route('/employee/<int:id>', methods=['GET'])
 @swag_from({
-    'tags': ['Employees'],
+    'tags': ['Employee'],
     'description': 'Получить сотрудника по ID',
     'parameters': [
         {
@@ -284,9 +284,9 @@ def validate_employee_update_data(data):
 
     return True, None
 
-@app.route('/employees/<int:id>', methods=['PUT'])
+@app.route('/employee/<int:id>', methods=['PUT'])
 @swag_from({
-    'tags': ['Employees'],
+    'tags': ['Employee'],
     'description': 'Обновить информацию о сотруднике (частично или полностью)',
     'parameters': [
         {
