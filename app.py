@@ -2,11 +2,14 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flasgger import Swagger, swag_from
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 # --- Flask init ---
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///local.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+print("Using DB:", app.config['SQLALCHEMY_DATABASE_URI'])
 
 db = SQLAlchemy(app)
 swagger = Swagger(app)
