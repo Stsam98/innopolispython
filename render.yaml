@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: my-flask-app
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: gunicorn app:app
+    envVars:
+      - fromDatabase:
+          name: mydb
+          property: connectionString
+          envVarName: DATABASE_URL
+
+databases:
+  - name: mydb
+    plan: free
