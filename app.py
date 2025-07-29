@@ -208,40 +208,57 @@ def get_employee_by_name(name):
     })
 
 
-@app.route('/employee/by-name/<string:name>', methods=['GET'])
+@app.route('/employees/<int:id>', methods=['GET'])
 @swag_from({
-    'tags': ['Employee'],
+    'tags': ['Employees'],
+    'description': 'Получить сотрудника по ID',
     'parameters': [
-        {'name': 'name', 'in': 'path', 'type': 'string', 'required': True}
+        {
+            'name': 'id',
+            'in': 'path',
+            'type': 'integer',
+            'required': True,
+            'description': 'ID сотрудника'
+        }
     ],
     'responses': {
         200: {
-            'description': 'Employees by name',
+            'description': 'Информация о сотруднике',
             'schema': {
-                'type': 'array',
-                'items': {
-                    'type': 'object',
-                    'properties': {
-                        'id': {'type': 'integer'},
-                        'name': {'type': 'string'},
-                        'surname': {'type': 'string'},
-                        'position': {'type': 'string'},
-                        'city': {'type': 'string'}
-                    }
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'integer'},
+                    'name': {'type': 'string'},
+                    'surname': {'type': 'string'},
+                    'position': {'type': 'string'},
+                    'city': {'type': 'string', 'nullable': True}
+                }
+            }
+        },
+        404: {
+            'description': 'Сотрудник не найден',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'}
                 }
             }
         }
     }
 })
-def get_employee_by_name(name):
-    employees = Employee.query.filter_by(name=name).all()
-    return jsonify([{
-        'id': e.id,
-        'name': e.name,
-        'surname': e.surname,
-        'position': e.position,
-        'city': e.city
-    } for e in employees]), 200
+def get_employee(id):
+    employee = Employee.query.get(id)
+    if not employee:
+        return jsonify({"error": f"Employee with id '{id}' not found"}), 404
+
+    return jsonify({
+        "id": employee.id,
+        "name": employee.name,
+        "surname": employee.surname,
+        "position": employee.position,
+        "city": employee.city
+    })
+
 
 
 def validate_employee_update_data(data):
