@@ -31,6 +31,7 @@ with app.app_context():
 @app.route('/employee', methods=['POST'])
 @swag_from({
     'tags': ['Employee'],
+    'description': 'Создание нового сотрудника',
     'parameters': [
         {
             'name': 'body',
@@ -44,17 +45,31 @@ with app.app_context():
                     'position': {'type': 'string'},
                     'city': {'type': 'string'}
                 },
-                'required': ['name', 'surname', 'position', 'city']
+                'required': ['name', 'surname', 'position']
             }
         }
     ],
     'responses': {
         201: {
-            'description': 'Employee created',
+            'description': 'Сотрудник успешно создан',
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'id': {'type': 'integer'}
+                    'id': {'type': 'integer'},
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        400: {
+            'description': 'Отсутствуют обязательные поля',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'error': {'type': 'string'},
+                    'missing_fields': {
+                        'type': 'array',
+                        'items': {'type': 'string'}
+                    }
                 }
             }
         }
@@ -62,11 +77,34 @@ with app.app_context():
 })
 def create_employee():
     data = request.get_json()
-    employee = Employee(**data)
-    db.session.add(employee)
-    db.session.commit()
-    return jsonify({'id': employee.id}), 201
 
+    required_fields = ['name', 'surname', 'position']
+    missing = [field for field in required_fields if not data.get(field)]
+
+    if missing:
+        return jsonify({
+            "error": "Missing required fields",
+            "missing_fields": missing
+        }), 400
+
+    valid, error_response = validate_employee_data(data)
+    if not valid:
+        return jsonify(error_response), 400
+    
+    new_employee = Employee(
+        name=data['name'],
+        surname=data['surname'],
+        position=data['position'],
+        city=data.get('city')
+    )
+
+    db.session.add(new_employee)
+    db.session.commit()
+
+    return jsonify({
+        "id": new_employee.id,
+        "message": "Employee created successfully"
+    }), 201
 
 @app.route('/employee/<int:employee_id>', methods=['DELETE'])
 @swag_from({
@@ -219,6 +257,30 @@ def update_employee(employee_id):
             setattr(employee, field, data[field])
     db.session.commit()
     return jsonify({'message': 'Updated'}), 200
+    
+def validate_employee_data(data):
+    required_fields = ['name', 'surname', 'position']
+    missing = [field for field in required_fields if not data.get(field)]
+    if missing:
+        return False, {
+            "error": "Missing required fields",
+            "missing_fields": missing
+        }
+
+    # Проверка типов — все должны быть строками, если переданы
+    wrong_types = []
+    for field in ['name', 'surname', 'position', 'city']:
+        if field in data and not isinstance(data[field], str):
+            wrong_types.append(field)
+
+    if wrong_types:
+        return False, {
+            "error": "Invalid field types",
+            "wrong_type_fields": wrong_types,
+            "message": "All fields must be strings"
+        }
+
+    return True, None
 
 
 if __name__ == '__main__':
