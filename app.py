@@ -183,8 +183,8 @@ def update_employee(employee_id):
             setattr(emp, key, data[key])
     db.session.commit()
     return jsonify(emp.to_dict())
-
+# Важно: это выполнится всегда, и локально, и на Render
+with app.app_context():
+    db.create_all()
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
