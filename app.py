@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 import jwt
 import datetime
+from functools import wraps
 
 SECRET_KEY = os.getenv("JWT_SECRET", "dev_jwt_secret")
 
