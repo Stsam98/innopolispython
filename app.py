@@ -4,6 +4,10 @@ from flasgger import Swagger, swag_from
 import os
 from dotenv import load_dotenv
 load_dotenv()
+import jwt
+import datetime
+
+SECRET_KEY = os.getenv("JWT_SECRET", "dev_jwt_secret")
 
 # --- Flask init ---
 app = Flask(__name__)
@@ -13,6 +17,19 @@ print("Using DB:", app.config['SQLALCHEMY_DATABASE_URI'])
 
 db = SQLAlchemy(app)
 swagger = Swagger(app)
+
+from werkzeug.security import generate_password_hash, check_password_hash
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 # --- Модель ---
 class Employee(db.Model):
@@ -27,8 +44,56 @@ with app.app_context():
     db.create_all()
 
 # --- Эндпоинты ---
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    if not data.get("username") or not data.get("password"):
+        return jsonify({"error": "Username and password are required"}), 400
+
+    if User.query.filter_by(username=data["username"]).first():
+        return jsonify({"error": "Username already exists"}), 400
+
+    user = User(username=data["username"])
+    user.set_password(data["password"])
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "User registered successfully"}), 201
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    user = User.query.filter_by(username=data.get("username")).first()
+    if not user or not user.check_password(data.get("password")):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    token = jwt.encode({
+        "user_id": user.id,
+        "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+    }, SECRET_KEY, algorithm="HS256")
+
+    return jsonify({"token": token})
+
+def require_auth(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer "):
+            return jsonify({"error": "Missing or invalid token"}), 401
+        token = auth.split(" ")[1]
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            request.user_id = payload["user_id"]  # если нужно использовать потом
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+        return f(*args, **kwargs)
+    return wrapper
+
 
 @app.route('/employee', methods=['POST'])
+@require_auth
 @swag_from({
     'tags': ['Employee'],
     'description': 'Создание нового сотрудника',
@@ -285,6 +350,7 @@ def validate_employee_update_data(data):
     return True, None
 
 @app.route('/employee/<int:id>', methods=['PUT'])
+@require_auth
 @swag_from({
     'tags': ['Employee'],
     'description': 'Обновить информацию о сотруднике (частично или полностью)',
