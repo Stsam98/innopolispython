@@ -62,6 +62,40 @@ with app.app_context():
 
 # --- Эндпоинты ---
 @app.route('/register', methods=['POST'])
+@swag_from({
+    'tags': ['Auth'],
+    'summary': 'Регистрация нового пользователя',
+    'description': 'Создаёт нового пользователя с логином и паролем',
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'username': {'type': 'string'},
+                    'password': {'type': 'string'},
+                },
+                'required': ['username', 'password']
+            }
+        }
+    ],
+    'responses': {
+        201: {
+            'description': 'Пользователь успешно зарегистрирован',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        400: {
+            'description': 'Ошибка валидации или пользователь уже существует'
+        }
+    }
+})
 def register():
     data = request.get_json()
     if not data.get("username") or not data.get("password"):
@@ -78,6 +112,40 @@ def register():
 
 
 @app.route('/login', methods=['POST'])
+@swag_from({
+    'tags': ['Auth'],
+    'summary': 'Логин пользователя',
+    'description': 'Возвращает JWT-токен по username и password',
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'username': {'type': 'string'},
+                    'password': {'type': 'string'},
+                },
+                'required': ['username', 'password']
+            }
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Успешный логин',
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'token': {'type': 'string'}
+                }
+            }
+        },
+        401: {
+            'description': 'Неверный логин или пароль'
+        }
+    }
+})
 def login():
     data = request.get_json()
     user = User.query.filter_by(username=data.get("username")).first()
