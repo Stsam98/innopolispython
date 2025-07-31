@@ -30,7 +30,23 @@ class User(db.Model):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
+        
+def seed_users():
+    if not User.query.first():  # если таблица пуста
+        users = [
+            {"username": "admin", "password": "admin"},
+            {"username": "user1", "password": "1234"},
+            {"username": "user2", "password": "abcd"}
+        ]
+        for u in users:
+            user = User(username=u["username"])
+            user.set_password(u["password"])
+            db.session.add(user)
+        db.session.commit()
+        print("✅ Seed users created.")
+    else:
+        print("ℹ️ Users already exist. Skipping seed.")
+        
 # --- Модель ---
 class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,6 +58,7 @@ class Employee(db.Model):
 # --- Создание таблиц ---
 with app.app_context():
     db.create_all()
+    seed_users()
 
 # --- Эндпоинты ---
 @app.route('/register', methods=['POST'])
